@@ -19,7 +19,176 @@ use Data::Dumper;
 
 =head1 DESCRIPTION
 
-Cookbook for L<Map::Tube> library.
+Cookbook for L<Map::Tube> v3.11 or above library.
+
+=head1 Table Of Contents
+
+=head2 1) Setup map file
+
+Currently L<Map::Tube> supports map data in XML format only. The structure of map
+is listed as below:
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <tube name="Your-Map-Name">
+        <lines>
+           <line id="Line-ID"
+                 name="Line-Name"
+                 color="Line-Color-Code" />
+           .....
+           .....
+           .....
+           .....
+        </lines>
+
+        <stations>
+           <station id="Station-ID"
+                    name="Station-Name"
+                    line="Line-ID:Station-Index"
+                    link="Station-ID"
+                    other_link="Link-Name:Station-ID" />
+           .....
+           .....
+           .....
+           .....
+        </stations>
+    </tube>
+
+The root of the xml data is C<tube> having one optional attribute C<name> i.e map
+name and two childrens C<lines> and C<stations>.
+
+The node C<lines> has one or more children C<line>. The node C<line>  defines the
+'Line' of the  map. The  node  C<line> has to have the attributes C<id>, C<name>.
+Optionally it can have C<color> as well. They are explained as below:
+
+    +-----------+---------------------------------------------------------------+
+    | Attribute | Description                                                   |
+    +-----------+---------------------------------------------------------------+
+    |           |                                                               |
+    | id        | Unique line id of the map. Ideally should be numeric but can  |
+    |           | be alphanumeric. It shouldn't contain ",".                    |
+    |           |                                                               |
+    | name      | Line name of the map. It doesn't have to be unique as long as |
+    |           | it has unique line id.                                        |
+    |           |                                                               |
+    | color     | Line color is optional. It should have color name or hexcode. |
+    |           |                                                               |
+    +-----------+---------------------------------------------------------------+
+
+Example from L<Map::Tube::Delhi> as show below:
+
+    <line id="Red" name="Red" color="#8B0000" />
+
+The node C<stations>  has one or more children C<station>. The node C<station> is
+used to represent  'station'  of  the map.It must have attributes C<id>, C<name>,
+C<line> and C<link>. It can optionally have attribute C<other_link>.
+
+    +------------+--------------------------------------------------------------+
+    | Attribute  | Description                                                  |
+    +------------+--------------------------------------------------------------+
+    |            |                                                              |
+    | id         | Unique station id of the map. Ideally should be numeric but  |
+    |            | can be alphanumeric. It shouldn't contain ",".               |
+    |            |                                                              |
+    | name       | Station name of the map.It doesn't have to be unique as long |
+    |            | as it has unique station id.                                 |
+    |            |                                                              |
+    | line       | Represents the station line alongwith the station index on   |
+    |            | the line. It should be ":" separated, e.g. "Red:2". It means |
+    |            | this is the first station on the line 'Red'. If the station  |
+    |            | crosses more than one lines, then they should be listed as   |
+    |            | "," separated. For Example, "Red:9,Green:16".                |
+    |            |                                                              |
+    | link       | Represents all linked stations to this station. e.g. "B04"   |
+    |            | If it is linked to more than one stations then they should   |
+    |            | be listed as ", " separated. For example "B04,B02".          |
+    |            |                                                              |
+    | other_link | This attribute is optional. This is useful if the station is |
+    |            | linked via other link and not by any of the lines, e.g. some |
+    |            | stations are linked by tunnel. This can be defined as        |
+    |            | "Tunnel:B02"                                                 |
+    |            |                                                              |
+    +------------+--------------------------------------------------------------+
+
+Example from L<Map::Tube::London>
+
+    <station id="B003"
+             name="Bank"
+             line="Central,DLR,Northern,Waterloo &amp; City"
+             link="S002,S024,L013,M011,L012,W008"
+             other_link="Tunnel:M009" />
+
+Let us create xml map for the following map:
+
+      A(1)  ----  B(2)
+     /              \
+    C(3)  --------  F(6) --- G(7) ---- H(8)
+     \              /
+      D(4)  ----  E(5)
+
+Below is the sample.xml represent the above map:
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <tube name="Sample">
+        <lines>
+           <line id="L1" name="L1" />
+        </lines>
+        <stations>
+           <station id="L01" name="A" line="L1:1" link="L02,L03"         />
+           <station id="L02" name="B" line="L1:2" link="L01,L06"         />
+           <station id="L03" name="C" line="L1:3" link="L01,L04,L06"     />
+           <station id="L04" name="D" line="L1:4" link="L03,L05"         />
+           <station id="L05" name="E" line="L1:5" link="L04,L06"         />
+           <station id="L06" name="F" line="L1:6" link="L02,L03,L05,L07" />
+           <station id="L07" name="G" line="L1:7" link="L06,L08"         />
+           <station id="L08" name="H" line="L1:8" link="L07"             />
+        </stations>
+    </tube>
+
+=head2 2) Create new map
+
+You would need the latest package L<Map::Tube> v3.11 or above.
+
+    package Sample::Map;
+
+    use Moo;
+    use namespace::clean;
+
+    has xml => (is => 'ro', default => sub { 'sample.xml' });
+    with 'Map::Tube';
+
+    package main;
+    use strict; use warnings;
+
+    my $map = Sample::Map->new;
+    print $map->get_shortest_route('A', 'D');
+
+=head2 3) Enable map graph
+
+To print  the  entire  map or just a particular line map, just install the plugin
+L<Map::Tube::Plugin::Graph> and you have all the tools to create map image.
+
+    use strict; use warnings;
+    use MIME::Base64;
+    use Sample::Map;
+
+    my $map  = Sample::Map->new;
+    my $name = $map->name;
+    open(my $MAP_IMAGE, ">$name.png");
+    binmode($MAP_IMAGE);
+    print $MAP_IMAGE decode_base64($map->as_image);
+    close($MAP_IMAGE);
+
+=head2 4) Enable fuzzy search line or station name.
+
+To enable the  fuzzy  search ability to the sample map, you would need to install
+L<Map::Tube::Plugin::FuzzyFind>  and  you have everything you need to perform the
+task.
+
+    use strict; use warnings;
+    use Sample::Map;
+
+    my $map = Sample::Map->new;
+    print 'Line contains: ', $map->fuzzy_find(search => 'a', object => 'lines');
 
 =head1 AUTHOR
 
@@ -28,6 +197,10 @@ Mohammad S Anwar, C<< <mohammad.anwar at yahoo.com> >>
 =head1 REPOSITORY
 
 L<https://github.com/Manwar/Map-Tube-Cookbook>
+
+=head1 SEE ALSO
+
+L<Map::Tube>
 
 =head1 BUGS
 
