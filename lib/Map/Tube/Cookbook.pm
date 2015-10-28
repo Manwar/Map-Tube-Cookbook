@@ -94,9 +94,10 @@ C<line> and C<link>. It can optionally have attribute C<other_link>.
     |            |                                                              |
     | line       | Represents the station line alongwith the station index on   |
     |            | the line. It should be ":" separated, e.g. "Red:2". It means |
-    |            | this is the first station on the line 'Red'. If the station  |
-    |            | crosses more than one lines, then they should be listed as   |
-    |            | "," separated. For Example, "Red:9,Green:16".                |
+    |            | this is the first station on the line 'Red'. Station index   |
+    |            | is NOT mandatory but nice to have. If the station crosses    |
+    |            | more than one lines, then they should be listed as ","       |
+    |            | separated. For Example, "Red:9,Green:16".                    |
     |            |                                                              |
     | link       | Represents all linked stations to this station. e.g. "B04"   |
     |            | If it is linked to more than one stations then they should   |
@@ -109,13 +110,20 @@ C<line> and C<link>. It can optionally have attribute C<other_link>.
     |            |                                                              |
     +------------+--------------------------------------------------------------+
 
-Example from L<Map::Tube::London>
+Example from L<Map::Tube::London> without station index:
 
     <station id="B003"
              name="Bank"
              line="Central,DLR,Northern,Waterloo &amp; City"
              link="S002,S024,L013,M011,L012,W008"
              other_link="Tunnel:M009" />
+
+Example from L<Map::Tube::Delhi> with station index:
+
+    <station id="B03"
+             name="Dwarka Sector 9"
+             line="Blue:3"
+             link="B04,B02" />
 
 Let us create xml map for the following map:
 
@@ -189,6 +197,235 @@ task.
 
     my $map = Sample::Map->new;
     print 'Line contains: ', $map->fuzzy_find(search => 'a', object => 'lines');
+
+=head2 5) Validate Map
+
+There is handy  package L<Test::Map::Tube> that can help you in testing the basic
+map structure and functionalities.
+
+    use strict; use warnings;
+    use Test::More;
+
+    my $min_ver = 0.09;
+    eval "use Test::Map::Tube $min_ver tests => 2";
+    plan skip_all => "Test::Map::Tube $min_ver required" if $@;
+
+    use Sample::Map;
+    my $map = Sample::Map->new;
+    ok_map($map);
+    ok_map_functions($map);
+
+=head2 6) Search Algorithm
+
+Lets take the same sample map.
+
+      A(1)  ----  B(2)
+     /              \
+    C(3)  --------  F(6) --- G(7) ---- H(8)
+     \              /
+      D(4)  ----  E(5)
+
+First thing we would do is build a table like below:
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  -   |  INF   |
+    | B      |  -   |  INF   |
+    | C      |  -   |  INF   |
+    | D      |  -   |  INF   |
+    | E      |  -   |  INF   |
+    | F      |  -   |  INF   |
+    | G      |  -   |  INF   |
+    | H      |  -   |  INF   |
+    +--------+------+--------+
+
+In the above table, the index on the left represents the  vertex we are going to.
+The 'Path' field tell us which vertex precedes us in the path. The 'Length' field
+is the length of the path from the starting vertex to that vertex, which we  have
+initialized to INFinity.
+
+Lets prepare the table assuming 'A' is the start point.
+
+We begin by  indicating  that 'A'  can be reach itself with a path of length '0'.
+This is better than infinity, so we replace INF with 0 in the length column.  And
+we also place 'A' in the path column.
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  A   |  0     |
+    | B      |  -   |  INF   |
+    | C      |  -   |  INF   |
+    | D      |  -   |  INF   |
+    | E      |  -   |  INF   |
+    | F      |  -   |  INF   |
+    | G      |  -   |  INF   |
+    | H      |  -   |  INF   |
+    +--------+------+--------+
+
+Now we look at A's neighbour.All two of A's neighbours 'B' and 'C' can be reached
+from 'A'  with  a path of length 1 (1 + the length of the path to A, which is 0).
+For all two of them this better than inifinity.So we update their path and length
+fields. And then enqueue them. because we will have to look at their  neighbour's
+next.
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  A   |  0     |
+    | B      |  A   |  1     |
+    | C      |  A   |  1     |
+    | D      |  -   |  INF   |
+    | E      |  -   |  INF   |
+    | F      |  -   |  INF   |
+    | G      |  -   |  INF   |
+    | H      |  -   |  INF   |
+    +--------+------+--------+
+
+We dequeue 'B' and look at its neighbour 'A', 'C' and 'F'.The path through vertex
+'B' to each of those vertices would have a length of 2(1 + the length of the path
+to 'B', which is 1). For 'A' and 'C', this is worse than what is already in their
+length,  so  we will do nothing for them. For 'F', the path of length 2 is better
+than infinity, so we will put 2 in its length and 'B' in its path, since  it came
+from 'B' and then we  will  enqueue it so we can eventually look at its neighbour
+if necessary.
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  A   |  0     |
+    | B      |  A   |  1     |
+    | C      |  A   |  1     |
+    | D      |  -   |  INF   |
+    | E      |  -   |  INF   |
+    | F      |  B   |  2     |
+    | G      |  -   |  INF   |
+    | H      |  -   |  INF   |
+    +--------+------+--------+
+
+Next we dequeue 'C' and look at its neighbour 'A', 'F' and 'D'. The  path through
+vertex 'C' to 'D' would have a length 2(1 + the length of the path to 'C'), which
+is better than infinity, so we will put 'C' in its path and 2 in its length.  All
+other would be worse than what they already have.
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  A   |  0     |
+    | B      |  A   |  1     |
+    | C      |  A   |  1     |
+    | D      |  C   |  2     |
+    | E      |  -   |  INF   |
+    | F      |  B   |  2     |
+    | G      |  -   |  INF   |
+    | H      |  -   |  INF   |
+    +--------+------+--------+
+
+Now we dequeue 'F' and look at its neighbour 'B', 'C', 'E' and 'G'. Now calculate
+the length through 'F' to all its neighbour.
+
+    'E' -> 'F' => 2 + 1 => 3 (better than infinity)
+    'G' -> 'F' => 2 + 1 => 3 (better than infinity)
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  A   |  0     |
+    | B      |  A   |  1     |
+    | C      |  A   |  1     |
+    | D      |  C   |  2     |
+    | E      |  F   |  3     |
+    | F      |  B   |  2     |
+    | G      |  F   |  3     |
+    | H      |  -   |  INF   |
+    +--------+------+--------+
+
+Next we dequeue 'D' and look at its neighbour 'C' and 'E'. None of them have  got
+any better length, Table remains the same as above.
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  A   |  0     |
+    | B      |  A   |  1     |
+    | C      |  A   |  1     |
+    | D      |  C   |  2     |
+    | E      |  F   |  3     |
+    | F      |  B   |  2     |
+    | G      |  F   |  3     |
+    | H      |  -   |  INF   |
+    +--------+------+--------+
+
+Now we dequeue 'E' and look at its neighbour 'D' and 'F'. Again none of them  got
+any better length, Table still remains the same as above.
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  A   |  0     |
+    | B      |  A   |  1     |
+    | C      |  A   |  1     |
+    | D      |  C   |  2     |
+    | E      |  F   |  3     |
+    | F      |  B   |  2     |
+    | G      |  F   |  3     |
+    | H      |  -   |  INF   |
+    +--------+------+--------+
+
+Now we dequeue 'G' and look at its neighbour 'F' and 'H'.
+
+    'H' -> 'G' => 3 + 1 => 4 (better than infinity)
+
+    +--------+---------------+
+    | Vertex | Path | Length |
+    +--------+------+--------+
+    | A      |  A   |  0     |
+    | B      |  A   |  1     |
+    | C      |  A   |  1     |
+    | D      |  C   |  2     |
+    | E      |  F   |  3     |
+    | F      |  B   |  2     |
+    | G      |  F   |  3     |
+    | H      |  G   |  4     |
+    +--------+------+--------+
+
+Finally we dequeue 'H' and look at its neighbour 'H'. Again the length is not any
+better than current, so we leave it.
+
+Now we can  use  the above table to find out the shortest route starting from 'A'
+to any other point in the map.
+
+Lets  find  the  shortest route from 'A' to 'F', as per the table above, we start
+with the end point 'F' and go backward like below:
+
+    'F' => 'B' => 'A'
+
+So the shortest route from 'A' to 'F' would be 'A', 'B' and 'F'.
+
+How about shortest route from 'A' to 'G'.
+
+    'G' => 'F' => 'B' => 'A'
+
+Hence the shortest route from 'A' to 'G' would be 'A', 'B', 'F' and 'G'.
+
+=head1 TEAM
+
+=head2 Gisbert W Selke (GWS)
+
+Author of  maps  like L<Glasgow|Map::Tube::Glasgow>, L<Lyon|Map::Tube::Lyon> etc.
+Also the creator of wonderful plugin L<Fuzzy Find|Map::Tube::Plugin::FuzzyFind>.
+
+=head2 Michal Spacek (SKIM)
+
+Author of most of the maps e.g. L<Moscow|Map::Tube::Moscow>, L<Kiev|Map::Tube::Kiev>,
+L<Warsaw|Map::Tube::Warsaw>,  L<Sofia|Map::Tube::Sofia> etc. He is the top in the
+leader  board  of maximum number of maps. He has been the source behind many nice
+features that we have.
+
+=head2 Slaven Rezic (SREZIC)
+
+Author of map like L<Berlin|Map::Tube::Berlin>.
 
 =head1 AUTHOR
 
