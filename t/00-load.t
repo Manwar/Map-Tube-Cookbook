@@ -2,16 +2,7 @@
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use Test::More tests => 7;
+use Test::More tests => 1;
 
-BEGIN {
-    use_ok('Map::Tube')            || print "Bail out!\n";
-    use_ok('Map::Tube::Node')      || print "Bail out!\n";
-    use_ok('Map::Tube::Line')      || print "Bail out!\n";
-    use_ok('Map::Tube::Table')     || print "Bail out!\n";
-    use_ok('Map::Tube::Route')     || print "Bail out!\n";
-    use_ok('Map::Tube::Utils')     || print "Bail out!\n";
-    use_ok('Map::Tube::Pluggable') || print "Bail out!\n";
-}
-
-diag( "Testing Map::Tube $Map::Tube::VERSION, Perl $], $^X" );
+BEGIN { use_ok('Map::Tube::Cookbook') || print "Bail out!\n"; }
+diag( "Testing Map::Tube::Cookbook $Map::Tube::Cookbook::VERSION, Perl $], $^X" );

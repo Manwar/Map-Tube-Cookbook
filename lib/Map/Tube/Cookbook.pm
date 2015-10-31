@@ -21,9 +21,7 @@ use Data::Dumper;
 
 Cookbook for L<Map::Tube> v3.11 or above library.
 
-=head1 Table Of Contents
-
-=head2 1) Setup map file
+=head1 SETUP MAP
 
 Currently L<Map::Tube> supports map data in XML format only. The structure of map
 is listed as below:
@@ -152,7 +150,7 @@ Below is the sample.xml represent the above map:
         </stations>
     </tube>
 
-=head2 2) Create new map
+=head1 CREATE MAP
 
 You would need the latest package L<Map::Tube> v3.11 or above.
 
@@ -170,7 +168,7 @@ You would need the latest package L<Map::Tube> v3.11 or above.
     my $map = Sample::Map->new;
     print $map->get_shortest_route('A', 'D');
 
-=head2 3) Enable map graph
+=head1 MAP GRAPH
 
 To print  the  entire  map or just a particular line map, just install the plugin
 L<Map::Tube::Plugin::Graph> and you have all the tools to create map image.
@@ -186,7 +184,7 @@ L<Map::Tube::Plugin::Graph> and you have all the tools to create map image.
     print $MAP_IMAGE decode_base64($map->as_image);
     close($MAP_IMAGE);
 
-=head2 4) Enable fuzzy search line or station name.
+=head1 FUZZY FIND
 
 To enable the  fuzzy  search ability to the sample map, you would need to install
 L<Map::Tube::Plugin::FuzzyFind>  and  you have everything you need to perform the
@@ -198,7 +196,7 @@ task.
     my $map = Sample::Map->new;
     print 'Line contains: ', $map->fuzzy_find(search => 'a', object => 'lines');
 
-=head2 5) Validate Map
+=head1 VALIDATE MAP
 
 There is handy  package L<Test::Map::Tube> that can help you in testing the basic
 map structure and functionalities.
@@ -215,7 +213,7 @@ map structure and functionalities.
     ok_map($map);
     ok_map_functions($map);
 
-=head2 6) Search Algorithm
+=head1 SEARCH ALGORITHM
 
 Lets take the same sample map.
 
