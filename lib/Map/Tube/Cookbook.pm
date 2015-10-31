@@ -1,6 +1,6 @@
 package Map::Tube::Cookbook;
 
-$Map::Tube::Cookbook::VERSION   = '0.01';
+$Map::Tube::Cookbook::VERSION   = '0.02';
 $Map::Tube::Cookbook::AUTHORITY = 'cpan:MANWAR';
 
 =head1 NAME
@@ -9,7 +9,7 @@ Map::Tube::Cookbook - Cookbook for Map::Tube library.
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
@@ -388,7 +388,7 @@ Now we dequeue 'G' and look at its neighbour 'F' and 'H'.
     | H      |  G   |  4     |
     +--------+------+--------+
 
-Finally we dequeue 'H' and look at its neighbour 'H'. Again the length is not any
+Finally we dequeue 'H' and look at its neighbour 'G'. Again the length is not any
 better than current, so we leave it.
 
 Now we can  use  the above table to find out the shortest route starting from 'A'
