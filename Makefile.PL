@@ -18,12 +18,16 @@ WriteMakefile(
     BUILD_REQUIRES   => {
         'Test::More' => '1.001014',
     },
-    PREREQ_PM        => {
+    PREREQ_PM          => {
+        'Data::Dumper' => 0,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Map-Tube-Cookbook*' },
     (eval { ExtUtils::MakeMaker->VERSION(6.46) } ? (META_MERGE => {
         'meta-spec' => { version => 2 },
+        provides    => {
+            'Map::Tube::Cookbook' => { file => 'lib/Map/Tube/Cookbook.pm', version => '0.03' },
+        },
         resources => {
             repository => {
                 type => 'git',
