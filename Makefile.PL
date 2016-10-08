@@ -26,13 +26,13 @@ WriteMakefile(
     (eval { ExtUtils::MakeMaker->VERSION(6.46) } ? (META_MERGE => {
         'meta-spec' => { version => 2 },
         provides    => {
-            'Map::Tube::Cookbook' => { file => 'lib/Map/Tube/Cookbook.pm', version => '0.03' },
+            'Map::Tube::Cookbook' => { file => 'lib/Map/Tube/Cookbook.pm', version => '0.04' },
         },
         resources => {
             repository => {
                 type => 'git',
-                url  => 'https://github.com/Manwar/Map-Tube-Cookbook.git',
-                web  => 'https://github.com/Manwar/Map-Tube-Cookbook',
+                url  => 'https://github.com/manwar/Map-Tube-Cookbook.git',
+                web  => 'https://github.com/manwar/Map-Tube-Cookbook',
             },
         }})
      : ()

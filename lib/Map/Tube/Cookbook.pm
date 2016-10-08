@@ -1,6 +1,6 @@
 package Map::Tube::Cookbook;
 
-$Map::Tube::Cookbook::VERSION   = '0.03';
+$Map::Tube::Cookbook::VERSION   = '0.04';
 $Map::Tube::Cookbook::AUTHORITY = 'cpan:MANWAR';
 
 =head1 NAME
@@ -9,7 +9,7 @@ Map::Tube::Cookbook - Cookbook for Map::Tube library.
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =cut
 
@@ -72,7 +72,7 @@ Optionally it can have C<color> as well. They are explained as below:
     |           |                                                               |
     +-----------+---------------------------------------------------------------+
 
-Example from L<Map::Tube::Delhi> as show below:
+Example from L<Map::Tube::Delhi> as shown below:
 
     <line id="Red" name="Red" color="#8B0000" />
 
@@ -431,7 +431,7 @@ Mohammad S Anwar, C<< <mohammad.anwar at yahoo.com> >>
 
 =head1 REPOSITORY
 
-L<https://github.com/Manwar/Map-Tube-Cookbook>
+L<https://github.com/manwar/Map-Tube-Cookbook>
 
 =head1 SEE ALSO
 
@@ -474,7 +474,7 @@ L<http://search.cpan.org/dist/Map-Tube-Cookbook/>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2015 Mohammad S Anwar.
+Copyright (C) 2015 - 2016 Mohammad S Anwar.
 
 This  program  is  free software;  you can redistribute it and/or modify it under
 the  terms  of the the Artistic License (2.0). You  may obtain a copy of the full
