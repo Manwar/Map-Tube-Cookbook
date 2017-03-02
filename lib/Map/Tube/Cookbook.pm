@@ -1,6 +1,6 @@
 package Map::Tube::Cookbook;
 
-$Map::Tube::Cookbook::VERSION   = '0.04';
+$Map::Tube::Cookbook::VERSION   = '0.06';
 $Map::Tube::Cookbook::AUTHORITY = 'cpan:MANWAR';
 
 =head1 NAME
@@ -9,7 +9,7 @@ Map::Tube::Cookbook - Cookbook for Map::Tube library.
 
 =head1 VERSION
 
-Version 0.04
+Version 0.06
 
 =cut
 
@@ -19,12 +19,12 @@ use Data::Dumper;
 
 =head1 DESCRIPTION
 
-Cookbook for L<Map::Tube> v3.11 or above library.
+Cookbook for L<Map::Tube> v3.22 or above library.
 
 =head1 SETUP MAP
 
-Currently L<Map::Tube> supports map data in XML format only. The structure of map
-is listed as below:
+C<Map::Tube v3.22> or above now supports map data in XML and JSON format. Here is
+the Structure of map in XML format:
 
     <?xml version="1.0" encoding="UTF-8"?>
     <tube name="Your-Map-Name">
@@ -50,6 +50,38 @@ is listed as below:
            .....
         </stations>
     </tube>
+
+And same in JSON format:
+
+   {
+       "name"  : "Your-Map-Name",
+       "lines" : {
+           "line" : [
+               { "id"    : "Line-ID",
+                 "name"  : "Line-Name",
+                 "color" : "Line-Code-Code"
+               },
+               .....
+               .....
+               .....
+               .....
+           ]
+       },
+       "stations" : {
+           "station" : [
+               { "id"         : "Station-ID",
+                 "name"       : "Station-Name",
+                 "line"       : "Line-ID:Station-Index",
+                 "link"       : "Station-ID",
+                 "other_link" : "Link-Name:Station-ID"
+               },
+               .....
+               .....
+               .....
+               .....
+           ]
+       }
+   }
 
 The root of the xml data is C<tube> having one optional attribute C<name> i.e map
 name and two childrens C<lines> and C<stations>.
@@ -131,7 +163,7 @@ Let us create xml map for the following map:
      \              /
       D(4)  ----  E(5)
 
-Below is the sample.xml represent the above map:
+Below is the XML representation C<sample.xml> of the above map:
 
     <?xml version="1.0" encoding="UTF-8"?>
     <tube name="Sample">
@@ -150,9 +182,28 @@ Below is the sample.xml represent the above map:
         </stations>
     </tube>
 
+Next is the JSON representation C<sample.json> of the above map:
+
+   {
+       "name"     : "Sample",
+       "lines"    : { "line"    : [ { "id" : "L1", "name" : "L1" } ] },
+       "stations" : { "station" : [ { "id" : "L01", "name": "A", "line": "L1:1", "link": "L02,L03"         },
+                                    { "id" : "L02", "name": "B", "line": "L1:2", "link": "L01,L06"         },
+                                    { "id" : "L03", "name": "C", "line": "L1:3", "link": "L01,L04,L06"     },
+                                    { "id" : "L04", "name": "D", "line": "L1:4", "link": "L03,L05"         },
+                                    { "id" : "L05", "name": "E", "line": "L1:5", "link": "L04,L06"         },
+                                    { "id" : "L06", "name": "F", "line": "L1:6", "link": "L02,L03,L05,L07" },
+                                    { "id" : "L07", "name": "G", "line": "L1:7", "link": "L06,L08"         },
+                                    { "id" : "L08", "name": "H", "line": "L1:8", "link": "L07"             }
+                                  ]
+                    }
+   }
+
 =head1 CREATE MAP
 
-You would need the latest package L<Map::Tube> v3.11 or above.
+You would need the C<Map::Tube> v3.22 or above to be able to support JSON format.
+
+Following code manage the map data in XML format.
 
     package Sample::Map;
 
@@ -167,6 +218,14 @@ You would need the latest package L<Map::Tube> v3.11 or above.
 
     my $map = Sample::Map->new;
     print $map->get_shortest_route('A', 'D');
+
+In order to support map data in JSON format, just replace the line below:
+
+    has xml => (is => 'ro', default => sub { 'sample.xml' });
+
+with
+
+    has json => (is => 'ro', default => sub { 'sample.json' });
 
 =head1 MAP GRAPH
 
@@ -217,195 +276,84 @@ map structure and functionalities.
 
 Lets take the same sample map.
 
-      A(1)  ----  B(2)
-     /              \
-    C(3)  --------  F(6) --- G(7) ---- H(8)
-     \              /
-      D(4)  ----  E(5)
+        1 -------- 2
+       /  \      /   \
+      /    \    /     \
+     0 ------ 6 ------ 3
+      \     /  \      /
+       \   /    \    /
+        5 -------- 4
 
-First thing we would do is build a table like below:
-
-    +--------+---------------+
-    | Vertex | Path | Length |
-    +--------+------+--------+
-    | A      |  -   |  INF   |
-    | B      |  -   |  INF   |
-    | C      |  -   |  INF   |
-    | D      |  -   |  INF   |
-    | E      |  -   |  INF   |
-    | F      |  -   |  INF   |
-    | G      |  -   |  INF   |
-    | H      |  -   |  INF   |
-    +--------+------+--------+
-
-In the above table, the index on the left represents the  vertex we are going to.
-The 'Path' field tell us which vertex precedes us in the path. The 'Length' field
-is the length of the path from the starting vertex to that vertex, which we  have
-initialized to INFinity.
-
-Lets prepare the table assuming 'A' is the start point.
-
-We begin by  indicating  that 'A'  can be reach itself with a path of length '0'.
-This is better than infinity, so we replace INF with 0 in the length column.  And
-we also place 'A' in the path column.
+We would build a table as follows:
 
     +--------+---------------+
     | Vertex | Path | Length |
     +--------+------+--------+
-    | A      |  A   |  0     |
-    | B      |  -   |  INF   |
-    | C      |  -   |  INF   |
-    | D      |  -   |  INF   |
-    | E      |  -   |  INF   |
-    | F      |  -   |  INF   |
-    | G      |  -   |  INF   |
-    | H      |  -   |  INF   |
+    | 0      |  -   |  INF   |
+    | 1      |  -   |  INF   |
+    | 2      |  -   |  INF   |
+    | 3      |  -   |  INF   |
+    | 4      |  -   |  INF   |
+    | 5      |  -   |  INF   |
+    | 6      |  -   |  INF   |
     +--------+------+--------+
 
-Now we look at A's neighbour.All two of A's neighbours 'B' and 'C' can be reached
-from 'A'  with  a path of length 1 (1 + the length of the path to A, which is 0).
-For all two of them this better than inifinity.So we update their path and length
-fields. And then enqueue them. because we will have to look at their  neighbour's
-next.
+In the table, the  index  on  the left represents the vertex we are going to (for
+convenience, we will assume that we are starting at vertex 0). We will ignore the
+Known field; it is only necessary if the edges are weighted. The Path field tells
+us  which  vertex  precedes us in the path. The Length field is the length of the
+path from  the  starting  vertex  to that vertex, which we initialize to INFinity
+under  the assumption that there is no path unless we find one, in which case the
+length will be less than infinity.
 
-    +--------+---------------+
-    | Vertex | Path | Length |
-    +--------+------+--------+
-    | A      |  A   |  0     |
-    | B      |  A   |  1     |
-    | C      |  A   |  1     |
-    | D      |  -   |  INF   |
-    | E      |  -   |  INF   |
-    | F      |  -   |  INF   |
-    | G      |  -   |  INF   |
-    | H      |  -   |  INF   |
-    +--------+------+--------+
+We begin by  indicating  that 0 can reach itself with a path of length 0. This is
+better  than infinity, so we replace INF with 0 in the Length column, and we also
+place a 0 in the  Path  column. Now  we  look  at 0's neighbors. All three of 0's
+neighbors 1, 5, and 6  can  be  reached  from  0 with a path of length 1 (1 + the
+length of the path to 0, which is 0), and for all three of them this is better,so
+we update their Path and Length fields and then enqueue them because we will have
+to look at their neighbors next.
 
-We dequeue 'B' and look at its neighbour 'A', 'C' and 'F'.The path through vertex
-'B' to each of those vertices would have a length of 2(1 + the length of the path
-to 'B', which is 1). For 'A' and 'C', this is worse than what is already in their
-length,  so  we will do nothing for them. For 'F', the path of length 2 is better
-than infinity, so we will put 2 in its length and 'B' in its path, since  it came
-from 'B' and then we  will  enqueue it so we can eventually look at its neighbour
+We dequeue 1, and look at its neighbors 0, 2, and 6. The path through vertex 1 to
+each of those vertices would have a length of 2 (1 + the length of the path to 1,
+which is 1). For 0 and 6 this is worse than what is already in their Length field
+so  we  will  do  nothing  for  them. For  2, the path of length 2 is better than
+infinity, so  we will put 2 in its Length field and 1 in its Path field, since it
+came from 1, and  then we will enqueue so we can eventually look at its neighbors
 if necessary.
 
-    +--------+---------------+
-    | Vertex | Path | Length |
-    +--------+------+--------+
-    | A      |  A   |  0     |
-    | B      |  A   |  1     |
-    | C      |  A   |  1     |
-    | D      |  -   |  INF   |
-    | E      |  -   |  INF   |
-    | F      |  B   |  2     |
-    | G      |  -   |  INF   |
-    | H      |  -   |  INF   |
-    +--------+------+--------+
+We dequeue the 5 and look at its neighbors 0, 4, and 6. The path through vertex 5
+to each of those vertices would have a length of 2 (1 + the length of the path to
+5, which is 1). For  0  and 6, this is worse than what is already in their Length
+field, so we will do nothing for them. For 4, the path of length 2 is better than
+infinity, so  we will put 2 in its Length field and 5 in its Path field, since it
+came  from 5,  and  then  we  will  enqueue  it  so we can eventually look at its
+neighbors if necessary.
 
-Next we dequeue 'C' and look at its neighbour 'A', 'F' and 'D'. The  path through
-vertex 'C' to 'D' would have a length 2(1 + the length of the path to 'C'), which
-is better than infinity, so we will put 'C' in its path and 2 in its length.  All
-other would be worse than what they already have.
+Next we  dequeue the 6, which shares an edge with each of the other six vertices.
+The  path  through  6 to any of these vertices would have a length of 2, but only
+vertex  3  currently has a higher Length (infinity), so we will update 3's fields
+and enqueue it.
 
-    +--------+---------------+
-    | Vertex | Path | Length |
-    +--------+------+--------+
-    | A      |  A   |  0     |
-    | B      |  A   |  1     |
-    | C      |  A   |  1     |
-    | D      |  C   |  2     |
-    | E      |  -   |  INF   |
-    | F      |  B   |  2     |
-    | G      |  -   |  INF   |
-    | H      |  -   |  INF   |
-    +--------+------+--------+
-
-Now we dequeue 'F' and look at its neighbour 'B', 'C', 'E' and 'G'. Now calculate
-the length through 'F' to all its neighbour.
-
-    'E' -> 'F' => 2 + 1 => 3 (better than infinity)
-    'G' -> 'F' => 2 + 1 => 3 (better than infinity)
+Of the remaining items in the queue the path through them to their neighbors will
+all  have  a  length of 3, since they all have a length of 2, which will be worse
+than  the values that are already in the Length fields of all the vertices, so we
+will not make any more changes to the table. The result is the following table:
 
     +--------+---------------+
     | Vertex | Path | Length |
     +--------+------+--------+
-    | A      |  A   |  0     |
-    | B      |  A   |  1     |
-    | C      |  A   |  1     |
-    | D      |  C   |  2     |
-    | E      |  F   |  3     |
-    | F      |  B   |  2     |
-    | G      |  F   |  3     |
-    | H      |  -   |  INF   |
+    | 0      |  0   |  0     |
+    | 1      |  0   |  1     |
+    | 2      |  1   |  2     |
+    | 3      |  6   |  2     |
+    | 4      |  5   |  2     |
+    | 5      |  0   |  1     |
+    | 6      |  0   |  1     |
     +--------+------+--------+
 
-Next we dequeue 'D' and look at its neighbour 'C' and 'E'. None of them have  got
-any better length, Table remains the same as above.
-
-    +--------+---------------+
-    | Vertex | Path | Length |
-    +--------+------+--------+
-    | A      |  A   |  0     |
-    | B      |  A   |  1     |
-    | C      |  A   |  1     |
-    | D      |  C   |  2     |
-    | E      |  F   |  3     |
-    | F      |  B   |  2     |
-    | G      |  F   |  3     |
-    | H      |  -   |  INF   |
-    +--------+------+--------+
-
-Now we dequeue 'E' and look at its neighbour 'D' and 'F'. Again none of them  got
-any better length, Table still remains the same as above.
-
-    +--------+---------------+
-    | Vertex | Path | Length |
-    +--------+------+--------+
-    | A      |  A   |  0     |
-    | B      |  A   |  1     |
-    | C      |  A   |  1     |
-    | D      |  C   |  2     |
-    | E      |  F   |  3     |
-    | F      |  B   |  2     |
-    | G      |  F   |  3     |
-    | H      |  -   |  INF   |
-    +--------+------+--------+
-
-Now we dequeue 'G' and look at its neighbour 'F' and 'H'.
-
-    'H' -> 'G' => 3 + 1 => 4 (better than infinity)
-
-    +--------+---------------+
-    | Vertex | Path | Length |
-    +--------+------+--------+
-    | A      |  A   |  0     |
-    | B      |  A   |  1     |
-    | C      |  A   |  1     |
-    | D      |  C   |  2     |
-    | E      |  F   |  3     |
-    | F      |  B   |  2     |
-    | G      |  F   |  3     |
-    | H      |  G   |  4     |
-    +--------+------+--------+
-
-Finally we dequeue 'H' and look at its neighbour 'G'. Again the length is not any
-better than current, so we leave it.
-
-Now we can  use  the above table to find out the shortest route starting from 'A'
-to any other point in the map.
-
-Lets  find  the  shortest route from 'A' to 'F', as per the table above, we start
-with the end point 'F' and go backward like below:
-
-    'F' => 'B' => 'A'
-
-So the shortest route from 'A' to 'F' would be 'A', 'B' and 'F'.
-
-How about shortest route from 'A' to 'G'.
-
-    'G' => 'F' => 'B' => 'A'
-
-Hence the shortest route from 'A' to 'G' would be 'A', 'B', 'F' and 'G'.
+Now if we  need to know how far away a vertex is from vertex 0, we can look it up
+in the table.
 
 =head1 TEAM
 
