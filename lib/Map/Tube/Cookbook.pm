@@ -1,6 +1,6 @@
 package Map::Tube::Cookbook;
 
-$Map::Tube::Cookbook::VERSION   = '0.07';
+$Map::Tube::Cookbook::VERSION   = '0.08';
 $Map::Tube::Cookbook::AUTHORITY = 'cpan:MANWAR';
 
 =head1 NAME
@@ -9,7 +9,7 @@ Map::Tube::Cookbook - Cookbook for Map::Tube library.
 
 =head1 VERSION
 
-Version 0.07
+Version 0.08
 
 =cut
 
@@ -422,7 +422,7 @@ L<http://search.cpan.org/dist/Map-Tube-Cookbook/>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2015 - 2016 Mohammad S Anwar.
+Copyright (C) 2015 - 2017 Mohammad S Anwar.
 
 This  program  is  free software;  you can redistribute it and/or modify it under
 the  terms  of the the Artistic License (2.0). You  may obtain a copy of the full
